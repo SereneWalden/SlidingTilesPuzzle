@@ -16,7 +16,7 @@ template <typename Node, typename Heuristic,
           typename Closed = ConcurrentClosedOpenAddressPool<Node, HashFunction, ClosedEntries>,
           typename Open = ConcurrentOpenArray<Node, 100, HashFunction, N_THREADS> >
 struct ConcurrentAStar : public ConcurrentSearch<Node> {
-    
+
     std::mutex mtx;
     Open open;
     Closed closed;
@@ -24,7 +24,7 @@ struct ConcurrentAStar : public ConcurrentSearch<Node> {
     std::atomic<bool> node_found = false;
     std::array<boost::object_pool<Node>, N_THREADS> object_pools;
     std::atomic<int> goal_f = std::numeric_limits<int>::max();
-    
+
     // perform A* search and returns solution path
     std::vector<Node>
     search(Node initial_node) override final {
@@ -43,7 +43,7 @@ struct ConcurrentAStar : public ConcurrentSearch<Node> {
     }
 
     void worker(int thread_id) {
-        
+
         while (true) {
             // synchronize return of all threads, if at least one solution found
             if (node_found == true) {
@@ -51,9 +51,9 @@ struct ConcurrentAStar : public ConcurrentSearch<Node> {
                     return;
                 }
             }
-            
+
             auto node = open.pop(thread_id);
-            
+
             if (node.has_value()) {
                 if (closed.insert(*node, object_pools[thread_id])) {
                     // check goal node
@@ -63,9 +63,10 @@ struct ConcurrentAStar : public ConcurrentSearch<Node> {
                         if (getF(*node) < goal_f) goal_f = getF(*node);
                         continue;
                     }
-                    auto child_nodes = getChildNodes(*node);
+                    //auto child_nodes = getChildNodes(*node);
                     ++ConcurrentSearch<Node>::expanded;
-                    for (auto child_node : child_nodes) {
+                    for (auto action : Node::valid_actions) {
+                        auto child_node = applyAction(*node, action);
                         if (child_node.has_value()) {
                             ++ConcurrentSearch<Node>::generated;
                             evalH(*child_node, heuristic);
@@ -74,7 +75,7 @@ struct ConcurrentAStar : public ConcurrentSearch<Node> {
                     }
                 }
             }
-        }          
+        }
     }
 
     std::ostream& print(std::ostream& os) const override final {

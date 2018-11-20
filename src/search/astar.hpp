@@ -36,9 +36,10 @@ struct AStar : public Search<Node> {
                 if (isGoal(*node)) {
                     return closed.getPath(*node);
                 }
-                auto child_nodes = getChildNodes(*node);
+
                 ++Search<Node>::expanded;
-                for (auto child_node : child_nodes) {
+                for (auto action : Node::valid_actions) {
+                    auto child_node = applyAction(*node, action);
                     if (child_node.has_value()) {
                         ++Search<Node>::generated;
                         evalH(*child_node, heuristic);

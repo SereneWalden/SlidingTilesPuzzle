@@ -20,12 +20,14 @@ namespace Tiles {
     template<int WIDTH, int HEIGHT>
     struct TileNode {
 
+        static std::array<MOVE, MOVE::N_MOVES> const valid_actions;
+
         // goal board configuration
         static TileNode<WIDTH, HEIGHT> const goal_node;
 
         // tile values, indexed in row-major order
         // e.g. 24 puzzle:
-        /* 0  1  2  3  4 
+        /* 0  1  2  3  4
            5  6  7  8  9
            10 11 12 13 14
            15 16 17 18 19
@@ -96,7 +98,7 @@ namespace Tiles {
                 break;
             case RIGHT:
                 if ((blank_idx % WIDTH) != (WIDTH - 1)) {
-                    new_node.emplace(swapBlank(blank_idx + 1));   
+                    new_node.emplace(swapBlank(blank_idx + 1));
                 }
                 break;
             default:
@@ -120,19 +122,28 @@ namespace Tiles {
         }
     };
 
-    
+    template<int WIDTH, int HEIGHT> std::optional<TileNode<WIDTH, HEIGHT> >
+    applyAction(TileNode<WIDTH, HEIGHT> tileNode, MOVE move) {
+        return tileNode.moveBlank(move);
+    }
+
     // returns goal board, where value at each index = index
     template<int WIDTH, int HEIGHT>
     std::array<uint8_t, WIDTH*HEIGHT> getGoalBoard() noexcept {
         std::array<uint8_t, WIDTH*HEIGHT> tiles;
         std::iota(tiles.begin(), tiles.end(), 0);
-        return tiles;      
+        return tiles;
     }
 
     // static initialization of goal node
     template<int WIDTH, int HEIGHT>
     TileNode<WIDTH, HEIGHT> const TileNode<WIDTH, HEIGHT>::goal_node =
         TileNode<WIDTH, HEIGHT>(getGoalBoard<WIDTH,HEIGHT>());
+
+    // static initialization of valid actions
+    template<int WIDTH, int HEIGHT>
+    std::array<MOVE, MOVE::N_MOVES> const TileNode<WIDTH, HEIGHT>::valid_actions =
+    {MOVE::DOWN, MOVE::LEFT, MOVE::RIGHT, MOVE::UP};
 
     // free functions, loose coupling, take advantage of argument dependent
     // lookup
@@ -142,7 +153,7 @@ namespace Tiles {
                     TileNode<WIDTH, HEIGHT> const & rhs) noexcept {
         return lhs.board == rhs.board;
     }
-    
+
     // get cost of path to node
     template <int WIDTH, int HEIGHT>
     int getG(TileNode<WIDTH, HEIGHT> const & node) noexcept {
@@ -173,7 +184,7 @@ namespace Tiles {
     getChildNodes(TileNode<WIDTH, HEIGHT> const & node) noexcept {
         std::array<
             std::optional< TileNode<WIDTH, HEIGHT> >, N_MOVES
-            > child_nodes;      
+            > child_nodes;
         if (node.prev_move != UP) {
             child_nodes[DOWN] = node.moveBlank(DOWN);
         }
@@ -186,12 +197,12 @@ namespace Tiles {
         if (node.prev_move != DOWN) {
             child_nodes[UP] = node.moveBlank(UP);
         }
-        return child_nodes;  
+        return child_nodes;
     }
-    
+
     template<int WIDTH, int HEIGHT>
     std::optional<TileNode<WIDTH, HEIGHT> >
-    getParent(TileNode<WIDTH, HEIGHT> const & node) noexcept {     
+    getParent(TileNode<WIDTH, HEIGHT> const & node) noexcept {
         if (node.prev_move == UP) {
             return node.moveBlank(DOWN);
         }
@@ -218,7 +229,7 @@ namespace Tiles {
             }
             os << "\n";
         }
-	return os;
+        return os;
     }
 }
 
@@ -228,7 +239,7 @@ namespace std
     template<int WIDTH, int HEIGHT>
     struct hash<Tiles::TileNode<WIDTH, HEIGHT> >
     {
-        
+
         size_t
         operator() (const Tiles::TileNode<WIDTH, HEIGHT>& node) const noexcept
         {
